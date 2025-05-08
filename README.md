@@ -1,128 +1,169 @@
-# RUN AI Locally (GUI)
+# Local AI Chat
 
-![Python Version](https://img.shields.io/badge/python-3.7%2B-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
 
-A simple Flask-based web GUI that enables local AI (LLMs) inference using [ollama](https://github.com/ollama/ollama) for model serving. This project is currently in **Alpha** phase and open to any contributions. Created by [@qusaismael](https://x.com/qusaismael).
-
-If you'd like to support this project, consider donating via PayPal: [![Donate](https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif)](https://paypal.me/l8rontop)
-
-![image](https://github.com/user-attachments/assets/9f4b13aa-fa0b-495b-a44f-bc88610ea0f8)
-
+A simple Flask-based web GUI for interacting with local AI models (LLMs) using [Ollama](https://github.com/ollama/ollama) for model serving. This project is in **Alpha** phase and open to contributions. Created by [@dhiebtarak].
 
 ---
 
 ## Table of Contents
 - [Features](#features)
-- [System Requirements & Recommendations](#system-requirements--recommendations)
-- [Installation](#installation)
-- [Usage](#usage)
+- [System Requirements](#system-requirements)
+- [Setup Instructions](#setup-instructions)
+  - [Clone the Repository](#clone-the-repository)
+  - [Set Up a Virtual Environment](#set-up-a-virtual-environment)
+  - [Install Dependencies](#install-dependencies)
+  - [Install and Configure Ollama](#install-and-configure-ollama)
+- [Running the Application](#running-the-application)
+- [Application User Guide](#application-user-guide)
 - [Security Notice](#security-notice)
 - [Troubleshooting](#troubleshooting)
-- [Project Status](#project-status)
-- [Roadmap](#roadmap)
 - [Contributing](#contributing)
 - [License](#license)
-- [Acknowledgments](#acknowledgments)
-- [References](#references)
 
 ---
 
 ## Features
-- **Multiple Model Support**: Easily switch between different local LLM models (e.g., `deepseek-r1`, `qwen2.5`, `codellama`, etc.)
-- **Streaming Responses**: See tokens appear in real time using server-sent events (SSE)
-- **Markdown and Code Block Rendering**: Code blocks with syntax highlighting and copy-to-clipboard
-- **Raw Output Toggle**: Debug with raw text output visibility
-- **Cross-Platform**: Works on Windows, Linux, and macOS
+- **Multiple Model Support**: Switch between different local LLM models (e.g., `deepseek-r1`, `qwen2.5`, `codellama`, etc.) via a dropdown.
+- **Streaming Responses**: View AI responses in real time as they are generated.
+- **Futuristic UI**: Features a 3D cube animation in the background for a modern look.
 - **Keyboard Shortcuts**:
-  - **Shift+Enter**: New line
-  - **Enter**: Send message
+  - **Shift+Enter**: Add a new line in the input fields.
+  - **Enter**: Send your message to the AI.
+- **Cross-Platform**: Compatible with Windows, Linux, and macOS.
 
 ---
 
-## System Requirements & Recommendations
+## System Requirements
 
-- **Python 3.7+**  
-  Required for Flask compatibility
-
-- **pip/venv**  
-  For dependency management and environment isolation
-
-- **ollama**  
-  [Installation required](https://github.com/ollama/ollama#installation)  
-  Verify installation:
-  ```bash
-  ollama --version
-
+- **Python 3.7+**: Required for Flask compatibility.
+- **pip/venv**: For dependency management and environment isolation.
+- **Ollama**: Required for serving local AI models. Installation instructions provided below.
 - **Hardware**:
-  - **Minimum**: 8GB RAM (for smaller models)
-  - **Recommended**: 16GB+ RAM + NVIDIA GPU (for larger models)
-  - **Disk Space**: 10GB+ for model storage
+  - **Minimum**: 8GB RAM (for smaller models).
+  - **Recommended**: 16GB+ RAM + NVIDIA GPU (for larger models).
+  - **Disk Space**: 10GB+ for model storage.
 
 ---
 
-## Installation
+## Setup Instructions
 
-1. **Clone Repository**
-   ```bash
-   git clone https://github.com/qusaismael/localllm.git
-   cd localllm
-   ```
+### Set Up a Virtual Environment
+Create and activate a virtual environment to isolate dependencies:
 
-2. **Setup Virtual Environment**
-   ```bash
-   # Linux/macOS
-   python3 -m venv venv
-   source venv/bin/activate
+```bash
+# Linux/macOS
+python3 -m venv venv
+source venv/bin/activate
 
-   # Windows
-   python -m venv venv
-   venv\Scripts\activate
-   ```
+# Windows
+python -m venv venv
+venv\Scripts\activate
+```
 
-3. **Install Dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
+You should see `(venv)` in your terminal prompt, indicating the virtual environment is active.
 
-4. **Configure Ollama**
-   - Ensure Ollama is running:
+### Install Dependencies
+Install the required Python packages listed in `requirements.txt`:
+
+```bash
+pip install -r requirements.txt
+```
+
+This will install Flask and other necessary libraries for the web application.
+
+### Install and Configure Ollama
+Ollama is required to serve the AI models locally. Follow these steps to set it up:
+
+1. **Install Ollama**:
+   - Download and install Ollama by following the instructions on the [Ollama GitHub page](https://github.com/ollama/ollama#installation).
+   - Verify the installation:
+     ```bash
+     ollama --version
+     ```
+
+2. **Start the Ollama Server**:
+   - Run the Ollama server in the background:
      ```bash
      ollama serve
      ```
-   - Download models first:
+
+3. **Download a Model**:
+   - Pull a model (e.g., `deepseek-r1:14b`) to use with the application:
      ```bash
      ollama pull deepseek-r1:14b
      ```
+   - You can pull other models as needed (e.g., `qwen2.5`, `codellama`).
 
 ---
 
-## Usage
+## Running the Application
 
-1. **Start Server**
+1. Ensure the Ollama server is running (see above).
+2. Start the Flask application:
    ```bash
    python app.py
    ```
-   Access at `http://localhost:5000`
+3. Open your web browser and navigate to:
+   ```
+   http://localhost:5000
+   ```
+   The Local AI Chat interface will load, ready for interaction.
 
-2. **First-Time Setup**
-   - Select model from available options
-   - If models aren't listed, ensure they're downloaded via Ollama
+---
 
-3. **Basic Operations**
-   - Type prompt & press Enter to send
-   - Toggle raw output for debugging
-   - Copy code blocks with one click
+## Application User Guide
+
+This section explains how to use the Local AI Chat application once it’s running.
+
+### Accessing the Interface
+- Navigate to `http://localhost:5000` in your web browser.
+- The interface includes a navbar at the top, a chat window in the center, and an input area at the bottom, with a 3D cube animation in the background.
+
+### Interface Overview
+- **Navbar**:
+  - **Title**: Displays "Local AI Chat".
+  - **Date/Time**: Shows the current date and time, updated every second.
+  - **Model Selector**: A dropdown menu to choose the AI model (e.g., `deepseek-r1:14b`).
+  - **New Chat Button**: Clears the current chat to start a new conversation.
+- **Chat Window**:
+  - Initially shows a placeholder: "Start a new conversation".
+  - Displays your messages (right-aligned, purple background) and AI responses (left-aligned, gray background).
+- **Input Area**:
+  - Two text areas:
+    - **CCP New Trade Message**: Enter your primary query.
+    - **Operation Message**: Add optional context or instructions.
+  - A hint: "Press Enter to send, Shift+Enter for new line".
+
+### Using the Chat
+1. **Select a Model**:
+   - Choose an AI model from the dropdown in the navbar. Ensure the model is downloaded via Ollama.
+2. **Compose Your Message**:
+   - Type your query in the "CCP New Trade Message" field.
+   - Optionally, add context in the "Operation Message" field.
+   - Use **Shift+Enter** to add a new line within the same field.
+3. **Send the Message**:
+   - Press **Enter** to send your message.
+   - Your message will appear on the right with a purple background.
+   - The AI will respond with "Thinking..." followed by a streaming response on the left with a gray background.
+4. **Start a New Chat**:
+   - Click the "+ New Chat" button to clear the chat window and start fresh.
+5. **View Responses**:
+   - AI responses stream in real time.
+   - Scroll up in the chat window to review previous messages.
+
+### Tips for Best Use
+- **Keep Prompts Clear**: Short, specific queries often yield better responses.
+- **Try Different Models**: Some models may perform better for specific tasks (e.g., `codellama` for coding).
+- **Monitor Performance**: If the UI is slow, check your system’s resource usage, as LLMs can be resource-intensive.
 
 ---
 
 ## Security Notice
 
 ⚠️ **Important Security Considerations**:
-- Default binding: `0.0.0.0` (accessible on your network)
-- Not recommended for public internet exposure
-- No authentication layer implemented
-- Use firewall rules to restrict access if needed
+- The app binds to `0.0.0.0` by default, making it accessible on your network.
+- Do not expose to the public internet.
+- No authentication is implemented; restrict access using firewall rules if needed.
 
 ---
 
@@ -130,87 +171,41 @@ If you'd like to support this project, consider donating via PayPal: [![Donate](
 
 **Common Issues**:
 
-1. **"Model not found" error**
-   ```bash
-   ollama pull <model-name>
-   ```
+1. **"Model not found" error**:
+   - Ensure the model is downloaded:
+     ```bash
+     ollama pull <model-name>
+     ```
+   - Verify the Ollama server is running:
+     ```bash
+     ollama serve
+     ```
 
-2. **Port conflict**
-   Modify `PORT` variable in `app.py`
+2. **Port conflict**:
+   - Modify the `PORT` variable in `app.py` to use a different port.
 
-3. **Slow responses**
-   - Try smaller models first
-   - Check system resource usage
-   - Ensure GPU acceleration is enabled if available
+3. **Slow responses**:
+   - Use a smaller model.
+   - Check system resource usage.
+   - Enable GPU acceleration if available.
 
-4. **Windows path issues**
-   Update `OLLAMA_PATH` in `app.py` to your installation path
-
----
-
-## Project Status
-
-**Alpha Release**  
-Current version: 0.1.0
-
-Known Limitations:
-- No conversation history
-- Basic error handling
-- Limited model configuration
-
----
-
-## Roadmap
-
-- [ ] Conversation history support
-- [ ] Model download UI
-- [ ] Docker support
-- [ ] System resource monitoring
+4. **Ollama not responding**:
+   - Restart the Ollama server and ensure it’s running before starting the Flask app.
 
 ---
 
 ## Contributing
 
-**Welcome!** Please follow these steps:
+Contributions are welcome! To contribute:
 
-1. Fork repository
-2. Create feature branch
-3. Submit PR with description
-
-**Development Setup**:
-```bash
-pip install -r requirements-dev.txt
-pre-commit install
-```
+1. Fork the repository.
+2. Create a feature branch.
+3. Submit a pull request with a detailed description.
 
 **Guidelines**:
-- Follow PEP8 style
-- Add tests for new features
-- Update documentation accordingly
+- Follow PEP 8 style for Python code.
+- Add tests for new features.
+- Update documentation as needed.
 
 ---
 
-## License
-
-MIT License - See [LICENSE](LICENSE) for details
-
----
-
-## Acknowledgments
-
-- Built with [Flask](https://flask.palletsprojects.com/)
-- LLM backend by [Ollama](https://ollama.ai)
-- Inspired by the Open Source AI community
-
----
-
-## References
-
-- [Ollama Documentation](https://github.com/ollama/ollama)
-- [Flask Documentation](https://flask.palletsprojects.com/)
-- [CUDA Installation Guide](https://developer.nvidia.com/cuda-downloads)
-
----
-
-**Created by [@qusaismael](https://x.com/qusaismael)**  
-**Open Source • Contributions Welcome!**
