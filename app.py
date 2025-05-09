@@ -38,10 +38,6 @@ logger = logging.getLogger(__name__)
 # ANSI escape sequence cleaner
 ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
 
-# Sample training prompt
-TRAINING_PROMPT = """CCP New Trade Message: <TrdCaptRpt RptID="90779" TrdID="33694547283" TransTyp="0" RptTyp="2" TrdTyp="11" MtchID="24399170153" PxTyp="10" LastQty="69" LastPx="250.45" TrdDt="2023-01-02" BizDt="2023-01-06" TxnTm="2023-03-30T05:17:30.100-6:00"><Hdr SID="MGEX" TID="D210" PosDup="N" PosRsnd="N" Snt="2023-03-30T05:17:30.768-6:00"></Hdr><Instrmt Sym="TMP" ID="B" Src="H" CFI="APYBKL" MMY="202305" MatDt="2023-05-13" Mult="0.9" Exch="SNTL"></Instrmt><RptSide Side="2" Ccy="USD" InptSrc="MA" InptDev="CLEARING" CustCpcty="1" PosEfct="O" ClOrdID="134" MLegRptTyp="3" AllocInd="1"><Pty ID="MGEX" R="21"></Pty><Pty ID="210" R="1"></Pty><Pty ID="140" R="4"></Pty><Pty ID="Mohamed-300" R="24"><Sub ID="1" Typ="26"></Sub></Pty><Pty ID="100" R="12"></Pty><TrdRegTS TS="2023-03-30T05:17:30.100-6:00" Typ="1"></TrdRegTS></RptSide></TrdCaptRpt>
-SGW Full Service Operation Message: <TrdCaptRpt RptID="33694547283" TrdDt="2023-01-02" BizDt="2023-01-06" TxnTm="2023-03-30T05:17:30.100-6:00" TrdID="33694547283" TransTyp="2" RptTyp="0" LastQty="69.0" LastPx="250.45"><Hdr Snt="2023-03-30T19:33:05.333+01:00" TID="MGEX" SID="D210"/><Instrmt Exch="SNTL" ID="B" MMY="202305" CFI="APYBKL"/><RptSide Side="2" CustCpcty="2"><Pty ID="210" R="1"/><Pty ID="FIRMACT1" R="24"><Sub ID="1" Typ="26"/></Pty></RptSide></TrdCaptRpt>"""
-
 # ---------------------------
 # Routes
 # ---------------------------
@@ -119,7 +115,7 @@ def stream_chat():
         return Response(error_gen(), mimetype='text/event-stream')
 
     # Prepend the training prompt to provide context
-    full_prompt = f"{TRAINING_PROMPT}\n\n{prompt}"
+    full_prompt = f"{prompt}"
 
     logger.info(f"Processing prompt with model {model}.")
 
