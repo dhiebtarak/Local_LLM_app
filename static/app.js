@@ -2,174 +2,266 @@
 // DOM Elements
 // ---------------------------
 const chatWindow = document.getElementById('chatWindow');
-const ccpInput = document.getElementById('ccpInput');
-const operationInput = document.getElementById('operationInput');
+const inputArea = document.getElementById('inputArea');
+const dualInputTemplate = document.getElementById('dualInputTemplate');
+const singleInputTemplate = document.getElementById('singleInputTemplate');
 const sendBtn = document.getElementById('sendBtn');
 const modelSelect = document.getElementById('modelSelect');
 const themeSelect = document.getElementById('themeSelect');
 const datetimeDisplay = document.getElementById('datetimeDisplay');
 
+// Debug: Log element availability
+console.log('chatWindow:', chatWindow);
+console.log('inputArea:', inputArea);
+console.log('dualInputTemplate:', dualInputTemplate);
+console.log('singleInputTemplate:', singleInputTemplate);
+console.log('sendBtn:', sendBtn);
+console.log('modelSelect:', modelSelect);
+console.log('themeSelect:', themeSelect);
+console.log('datetimeDisplay:', datetimeDisplay);
+
+// Dynamic input elements (will be updated based on model)
+let ccpInput, operationInput, singleInput;
+
 // ---------------------------
 // Event Listeners
 // ---------------------------
 document.addEventListener('DOMContentLoaded', initializeApp);
-sendBtn.addEventListener('click', sendMessage);
-ccpInput.addEventListener('keydown', handleKeyDown);
-operationInput.addEventListener('keydown', handleKeyDown);
-themeSelect.addEventListener('change', changeTheme);
+
+// Conditional event listeners
+if (sendBtn) {
+    sendBtn.addEventListener('click', sendMessage);
+} else {
+    console.error('sendBtn element not found');
+}
+
+if (modelSelect) {
+    modelSelect.addEventListener('change', updateInputArea);
+} else {
+    console.error('modelSelect element not found');
+}
+
+if (themeSelect) {
+    themeSelect.addEventListener('change', changeTheme);
+} else {
+    console.error('themeSelect element not found');
+}
 
 // ---------------------------
 // Chat Functionality
 // ---------------------------
 function initializeApp() {
-    // Initialize the 3D cube
-    initFuturisticCube();
+    // Initialize input elements
+    ccpInput = document.getElementById('ccpInput');
+    operationInput = document.getElementById('operationInput');
+    singleInput = document.getElementById('singleInput');
+
+    console.log('ccpInput:', ccpInput);
+    console.log('operationInput:', operationInput);
+    console.log('singleInput:', singleInput);
+
+    // Attach initial keydown listeners for dual input
+    if (ccpInput) ccpInput.addEventListener('keydown', handleKeyDown);
+    if (operationInput) operationInput.addEventListener('keydown', handleKeyDown);
+
+    // Initialize the 3D cube (will fail gracefully if canvas is missing)
+    if (document.getElementById('futuristicCube')) {
+        initFuturisticCube();
+    } else {
+        console.warn('futuristicCube canvas not found, skipping 3D cube initialization');
+    }
     
     // Set up the date/time display
-    updateDateTime();
-    setInterval(updateDateTime, 1000);
+    if (datetimeDisplay) {
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+    }
     
-    // Focus the input field
-    ccpInput.focus();
+    // Focus the appropriate input field based on the initial model
+    updateInputArea();
     
     // Load any saved theme preference
     const savedTheme = localStorage.getItem('theme') || 'theme-futuristic';
     document.documentElement.className = savedTheme;
-    themeSelect.value = savedTheme;
+    if (themeSelect) themeSelect.value = savedTheme;
 }
 
 function updateDateTime() {
-    const now = new Date();
-    const options = { 
-        weekday: 'short', 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: true
-    };
-    datetimeDisplay.textContent = now.toLocaleDateString('en-US', options);
+    if (datetimeDisplay) {
+        const now = new Date();
+        const options = { 
+            weekday: 'short', 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+        };
+        datetimeDisplay.textContent = now.toLocaleDateString('en-US', options);
+    }
+}
+
+function updateInputArea() {
+    const selectedModel = modelSelect ? modelSelect.value : '';
+    const isTinyllama = selectedModel === 'tinyllama:latest';
+
+    // Show/hide input templates
+    if (dualInputTemplate && singleInputTemplate) {
+        if (isTinyllama) {
+            dualInputTemplate.style.display = 'block';
+            singleInputTemplate.style.display = 'none';
+            if (ccpInput) ccpInput.addEventListener('keydown', handleKeyDown);
+            if (operationInput) operationInput.addEventListener('keydown', handleKeyDown);
+            if (singleInput) singleInput.removeEventListener('keydown', handleKeyDown);
+            if (ccpInput) ccpInput.focus();
+        } else {
+            dualInputTemplate.style.display = 'none';
+            singleInputTemplate.style.display = 'block';
+            if (singleInput) singleInput.addEventListener('keydown', handleKeyDown);
+            if (ccpInput) ccpInput.removeEventListener('keydown', handleKeyDown);
+            if (operationInput) operationInput.removeEventListener('keydown', handleKeyDown);
+            if (singleInput) singleInput.focus();
+        }
+    } else {
+        console.error('dualInputTemplate or singleInputTemplate not found');
+    }
 }
 
 function handleKeyDown(e) {
     // Send message when Enter is pressed (without Shift)
     if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        sendMessage();
+        if (sendBtn) sendMessage();
     }
 }
 
 function sendMessage() {
-    const ccpMessage = ccpInput.value.trim();
-    const operationMessage = operationInput.value.trim();
+    if (!modelSelect || !sendBtn) {
+        console.error('modelSelect or sendBtn not available, cannot send message');
+        return;
+    }
     const selectedModel = modelSelect.value;
-    
-    if (!ccpMessage && !operationMessage) return;
-    
-    // Construct the prompt
-    const prompt = `CCP New Trade Message: ${ccpMessage}\nSGW Full Service Operation Message: ${operationMessage}`;
-    
+    const isTinyllama = selectedModel === 'tinyllama:latest';
+    let prompt = '';
+
+    // Construct prompt based on the selected model
+    if (isTinyllama) {
+        const ccpMessage = ccpInput ? ccpInput.value.trim() : '';
+        const operationMessage = operationInput ? operationInput.value.trim() : '';
+        if (!ccpMessage && !operationMessage) return;
+        prompt = `CCP New Trade Message: ${ccpMessage} SGW Full Service Operation Message: ${operationMessage}`;
+        if (ccpInput) ccpInput.value = '';
+        if (operationInput) operationInput.value = '';
+    } else {
+        const message = singleInput ? singleInput.value.trim() : '';
+        if (!message) return;
+        prompt = message;
+        if (singleInput) singleInput.value = '';
+    }
+
     // Add user message to chat
-    addMessageToChat('user', prompt);
-    
-    // Clear input fields
-    ccpInput.value = '';
-    operationInput.value = '';
-    
+    if (chatWindow) addMessageToChat('user', prompt);
+
     // Show loading indicator
-    const assistantMessage = addMessageToChat('assistant', 'Thinking...');
-    
+    const assistantMessage = chatWindow ? addMessageToChat('assistant', 'Thinking...') : null;
+
     // Send to backend and handle streaming response
-    streamResponse(prompt, selectedModel, assistantMessage);
+    if (assistantMessage) streamResponse(prompt, selectedModel, assistantMessage);
 }
 
 function addMessageToChat(sender, content) {
-    const messageDiv = document.createElement('div');
-    messageDiv.classList.add('message', sender);
-    
-    const paragraph = document.createElement('p');
-    paragraph.textContent = content;
-    
-    messageDiv.appendChild(paragraph);
-    chatWindow.appendChild(messageDiv);
-    
-    // Scroll to bottom
-    chatWindow.scrollTop = chatWindow.scrollHeight;
-    
-    return paragraph; // Return for updating with stream content
+    if (chatWindow) {
+        const messageDiv = document.createElement('div');
+        messageDiv.classList.add('message', sender);
+        
+        const paragraph = document.createElement('p');
+        paragraph.textContent = content;
+        
+        messageDiv.appendChild(paragraph);
+        chatWindow.appendChild(messageDiv);
+        
+        // Scroll to bottom
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+        
+        return paragraph;
+    }
+    return null;
 }
 
 function streamResponse(prompt, model, messageElement) {
-    // Create EventSource for server-sent events
-    fetch('/stream_chat', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ prompt, model })
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        return response.body;
-    })
-    .then(body => {
-        const reader = body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-        let fullResponse = '';
-        
-        messageElement.textContent = '';
-        
-        function processStream({ done, value }) {
-            if (done) {
-                return;
+    if (messageElement) {
+        fetch('/stream_chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ prompt, model })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
             }
+            return response.body;
+        })
+        .then(body => {
+            const reader = body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+            let fullResponse = '';
             
-            buffer += decoder.decode(value, { stream: true});
+            messageElement.textContent = '';
             
-            // Process any complete SSE messages in the buffer
-            const lines = buffer.split('\n\n');
-            buffer = lines.pop(); // Keep the last incomplete chunk in the buffer
-            
-            for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                    const data = line.substring(6);
-                    if (data === '[DONE]') {
-                        return;
-                    } else {
-                        fullResponse += data;
-                        messageElement.textContent = fullResponse;
-                        chatWindow.scrollTop = chatWindow.scrollHeight;
+            function processStream({ done, value }) {
+                if (done) {
+                    return;
+                }
+                
+                buffer += decoder.decode(value, { stream: true});
+                
+                const lines = buffer.split('\n\n');
+                buffer = lines.pop();
+                
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const data = line.substring(6);
+                        if (data === '[DONE]') {
+                            return;
+                        } else {
+                            fullResponse += data;
+                            messageElement.textContent = fullResponse;
+                            if (chatWindow) chatWindow.scrollTop = chatWindow.scrollHeight;
+                        }
                     }
                 }
+                
+                return reader.read().then(processStream);
             }
             
-            // Continue reading
             return reader.read().then(processStream);
-        }
-        
-        return reader.read().then(processStream);
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        messageElement.textContent = 'Error: Could not connect to the AI service.';
-    });
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            if (messageElement) messageElement.textContent = 'Error: Could not connect to the AI service.';
+        });
+    }
 }
 
 // ---------------------------
 // Theme Management
 // ---------------------------
 function changeTheme() {
-    const newTheme = themeSelect.value;
-    document.documentElement.className = newTheme;
-    localStorage.setItem('theme', newTheme);
-    
-    // Reinitialize the cube with new theme colors
-    initFuturisticCube();
+    if (themeSelect) {
+        const newTheme = themeSelect.value;
+        document.documentElement.className = newTheme;
+        localStorage.setItem('theme', newTheme);
+        
+        // Reinitialize the cube with new theme colors
+        if (document.getElementById('futuristicCube')) {
+            initFuturisticCube();
+        }
+    }
 }
 
 // ---------------------------
@@ -178,6 +270,12 @@ function changeTheme() {
 let scene, camera, renderer, cube;
 
 function initFuturisticCube() {
+    const futuristicCube = document.getElementById('futuristicCube');
+    if (!futuristicCube) {
+        console.error('futuristicCube canvas not found');
+        return;
+    }
+
     // Get cube color from CSS variables
     const computedStyle = getComputedStyle(document.documentElement);
     const cubeColor = computedStyle.getPropertyValue('--cube-color').trim();
@@ -185,7 +283,7 @@ function initFuturisticCube() {
     // Clean up if already initialized
     if (renderer) {
         renderer.dispose();
-        document.getElementById('futuristicCube').remove();
+        futuristicCube.remove();
         
         const newCanvas = document.createElement('canvas');
         newCanvas.id = 'futuristicCube';
@@ -201,7 +299,7 @@ function initFuturisticCube() {
     
     // Create renderer
     renderer = new THREE.WebGLRenderer({ 
-        canvas: document.getElementById('futuristicCube'),
+        canvas: futuristicCube,
         alpha: true,
         antialias: true
     });
@@ -230,11 +328,13 @@ function initFuturisticCube() {
 }
 
 function animateCube() {
-    requestAnimationFrame(animateCube);
-    
-    // Rotate the cube
-    cube.rotation.x += 0.005;
-    cube.rotation.y += 0.005;
-    
-    renderer.render(scene, camera);
+    if (renderer && cube) {
+        requestAnimationFrame(animateCube);
+        
+        // Rotate the cube
+        cube.rotation.x += 0.005;
+        cube.rotation.y += 0.005;
+        
+        renderer.render(scene, camera);
+    }
 }

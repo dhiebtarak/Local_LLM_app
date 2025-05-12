@@ -15,14 +15,6 @@
     <div class="left-nav">
       <div class="avatar">R1</div>
       <h2>Local AI Chat</h2>
-      <!-- Theme Selector -->
-      <div class="theme-selector">
-        <label for="themeSelect">Select Theme:</label>
-        <select id="themeSelect">
-          <option value="theme-purple-dark">Dark Mode</option>
-          <option value="theme-futuristic" selected>Light Mode</option>
-        </select>
-      </div>
     </div>
     <div class="right-nav">
       <!-- Date/Time Display -->
@@ -40,13 +32,20 @@
       <div class="chat-window" id="chatWindow">
         <!-- Chat messages will appear here -->
       </div>
-        <div class="input-area">
+      <div class="input-area" id="inputArea">
+        <!-- Dual input for loratinylllama:latest -->
+        <div class="input-template" id="dualInputTemplate">
           <div class="dual-input-container">
             <textarea id="ccpInput" placeholder="CCP New Trade Message..."></textarea>
             <textarea id="operationInput" placeholder="Operation Message..."></textarea>
           </div>
-          <button id="sendBtn">Send</button>
         </div>
+        <!-- Single input for other models -->
+        <div class="input-template" id="singleInputTemplate" style="display: none;">
+          <textarea id="singleInput" placeholder="Type your message..."></textarea>
+        </div>
+        <button id="sendBtn">Send</button>
+      </div>
     </div>
   </div>
 

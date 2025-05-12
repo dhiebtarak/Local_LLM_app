@@ -1,8 +1,7 @@
 import os
 import re
-import shutil
-import subprocess
 import logging
+import json
 import requests
 from flask import Flask, request, render_template, Response, stream_with_context, jsonify
 
@@ -14,9 +13,9 @@ class Config:
     DEBUG = os.environ.get('DEBUG', 'False') == 'True'
     
     # Ollama settings
-    OLLAMA_PATH = shutil.which("ollama") or "/usr/local/bin/ollama"
     OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434")
-    DEFAULT_MODEL = "loratinylllama"  # Changed to your trained model
+    DEFAULT_MODEL = "tinyllama:latest"
+    ALLOWED_MODELS = None  # Will be populated after checking available models
     
     # Server configuration
     HOST = "0.0.0.0"
@@ -25,7 +24,7 @@ class Config:
 # ---------------------------
 # Initialize Flask Application
 # ---------------------------
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static', template_folder='templates')
 app.config.from_object(Config)
 
 # Configure logging
@@ -36,7 +35,26 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # ANSI escape sequence cleaner
-ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
+ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+
+# ---------------------------
+# Helper Functions
+# ---------------------------
+def get_available_models():
+    """Retrieve list of available Ollama models via API."""
+    try:
+        response = requests.get(f"{Config.OLLAMA_HOST}/api/tags", timeout=10)
+        response.raise_for_status()
+        models_data = response.json()
+        model_names = [model['name'] for model in models_data.get('models', [])]
+        logger.debug("Available models: %s", model_names)
+        return model_names
+    except Exception as e:
+        logger.error("Failed to list models: %s", str(e))
+        return []
+
+# Initialize allowed models on app startup
+Config.ALLOWED_MODELS = get_available_models()
 
 # ---------------------------
 # Routes
@@ -45,18 +63,14 @@ ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
 def health_check():
     """Endpoint for system health monitoring."""
     try:
-        result = subprocess.run(
-            [Config.OLLAMA_PATH, "--version"],
-            capture_output=True,
-            check=True,
-            text=True,
-            timeout=5
-        )
-        logger.debug(f"Ollama version: {result.stdout.strip()}")
+        response = requests.get(f"{Config.OLLAMA_HOST}/api/version", timeout=5)
+        response.raise_for_status()
+        version_data = response.json()
+        logger.debug(f"Ollama version: {version_data}")
         return jsonify({
             "status": "healthy",
             "ollama": "accessible",
-            "version": result.stdout.strip()
+            "version": version_data.get("version", "unknown")
         }), 200
     except Exception as e:
         logger.error(f"Health check failed: {str(e)}")
@@ -64,17 +78,9 @@ def health_check():
 
 @app.route("/models", methods=["GET"])
 def list_models():
-    """Endpoint to list available Ollama models."""
+    """Endpoint to list available Ollama models via API."""
     try:
-        result = subprocess.run(
-            [Config.OLLAMA_PATH, "list"],
-            capture_output=True,
-            text=True,
-            check=True,
-            timeout=10
-        )
-        models = result.stdout.strip().split("\n")[1:]  # Skip header
-        model_names = [line.split()[0].strip() for line in models if line.strip()]
+        model_names = get_available_models()
         logger.debug(f"Available models: {model_names}")
         return jsonify({"models": model_names}), 200
     except Exception as e:
@@ -85,15 +91,7 @@ def list_models():
 def index():
     """Render main chat interface with dynamically loaded models."""
     try:
-        result = subprocess.run(
-            [Config.OLLAMA_PATH, "list"],
-            capture_output=True,
-            text=True,
-            check=True,
-            timeout=10
-        )
-        models = result.stdout.strip().split("\n")[1:]
-        model_names = [line.split()[0].strip() for line in models if line.strip()]
+        model_names = get_available_models()
         logger.debug(f"Available models for rendering: {model_names}")
         return render_template('index.html', models=model_names)
     except Exception as e:
@@ -102,43 +100,45 @@ def index():
 
 @app.route("/stream_chat", methods=["POST"])
 def stream_chat():
-    """Handle streaming chat requests using Ollama generate API."""
-    data = request.get_json(silent=True) or {}
-    prompt = data.get("prompt", "").strip()
-    model = data.get("model", Config.DEFAULT_MODEL).strip()
+    # Extract prompt and model from the request
+    data = request.get_json()
+    if not data or 'prompt' not in data or 'model' not in data:
+        logger.error("Invalid request: prompt and model are required")
+        return jsonify({"error": "prompt and model are required"}), 400
 
-    if not prompt:
-        def error_gen():
-            yield "data: Missing prompt.\n\n"
-            yield "data: [DONE]\n\n"
-        logger.warning("Received request with missing prompt.")
-        return Response(error_gen(), mimetype='text/event-stream')
+    prompt = data['prompt']
+    model = data['model']
+    logger.debug(f"Streaming chat with model: {model}, prompt: {prompt}")
 
-    # Prepend the training prompt to provide context
-    full_prompt = f"{prompt}"
+    # Validate model
+    if model not in Config.ALLOWED_MODELS:
+        logger.error(f"Model {model} not found in allowed models: {Config.ALLOWED_MODELS}")
+        return jsonify({"error": f"Model {model} not found"}), 400
 
-    logger.info(f"Processing prompt with model {model}.")
+    # Ollama API endpoint for streaming
+    url = f"{app.config['OLLAMA_HOST']}/api/generate"
+    payload = {
+        "model": model,
+        "prompt": prompt,
+        "stream": True
+    }
 
-    def sse_generator():
-        try:
-            # Use Ollama's generate endpoint
-            response = requests.post(
-                f"{Config.OLLAMA_HOST}/api/generate",
-                json={"model": model, "prompt": full_prompt, "stream": True},
-                stream=True,
-                timeout=30
-            )
-            response.raise_for_status()
+    try:
+        response = requests.post(url, json=payload, stream=True)
+        response.raise_for_status()
 
+        def sse_generator():
             for line in response.iter_lines():
                 if line:
                     try:
                         json_data = line.decode('utf-8').strip()
                         if json_data:
-                            import json
                             data = json.loads(json_data)
                             if 'response' in data:
-                                clean_response = ansi_escape.sub('', data['response'])
+                                # Decode Unicode escape sequences (e.g., \u003c to <)
+                                raw_response = data['response'].encode().decode('unicode_escape')
+                                # Clean ANSI escape codes
+                                clean_response = ansi_escape.sub('', raw_response)
                                 if clean_response.strip():
                                     logger.debug(f"Ollama output: {clean_response}")
                                     yield f"data: {clean_response}\n\n"
@@ -151,23 +151,27 @@ def stream_chat():
                         yield "data: [DONE]\n\n"
                         break
 
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Ollama API error: {str(e)}")
+        return Response(stream_with_context(sse_generator()), mimetype='text/event-stream')
+
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Ollama API error: {str(e)}")
+        def sse_generator():
             yield f"data: Ollama API error: {str(e)}\n\n"
             yield "data: [DONE]\n\n"
-        except Exception as e:
-            logger.error(f"Stream error: {str(e)}")
+        return Response(stream_with_context(sse_generator()), mimetype='text/event-stream')
+    except Exception as e:
+        logger.error(f"Stream error: {str(e)}")
+        def sse_generator():
             yield f"data: Exception in stream_chat: {str(e)}\n\n"
             yield "data: [DONE]\n\n"
-
-    return Response(stream_with_context(sse_generator()), mimetype='text/event-stream')
+        return Response(stream_with_context(sse_generator()), mimetype='text/event-stream')
 
 # ---------------------------
 # Main Entry Point
 # ---------------------------
 if __name__ == "__main__":
     logger.info(f"Starting server on {Config.HOST}:{Config.PORT}")
-    logger.info(f"Using Ollama path: {Config.OLLAMA_PATH}")
+    logger.info(f"Using Ollama host: {Config.OLLAMA_HOST}")
     app.run(
         host=Config.HOST,
         port=Config.PORT,
