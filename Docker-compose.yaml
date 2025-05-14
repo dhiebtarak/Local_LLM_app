@@ -11,7 +11,6 @@ services:
       - "11434:11434"
     volumes:
       - tinyllama_volume:/root/.ollama
-      - "./startup.sh:/root/.ollama/startup.sh"
     networks:
       - myflask-app-network
 # Enable GPU support (requires NVIDIA Container Toolkit on the host)
@@ -23,9 +22,6 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
-    entrypoint: ["/bin/bash", "/root/.ollama/startup.sh"]
-    # Removed command to avoid conflict with startup.sh; ensure the script starts the server
-    command: ["ollama", "serve"]
 
   flask-app_comp:
     image: flask-app:latest
@@ -41,8 +37,6 @@ services:
       - OLLAMA_HOST=http://ollama_comp:11434
       - FLASK_APP=app.py
       - FLASK_ENV=development
-    volumes:
-      - .:/app
     networks:
       - myflask-app-network
 

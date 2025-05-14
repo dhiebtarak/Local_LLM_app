@@ -1,6 +1,15 @@
 FROM ollama/ollama:latest
+
+# Copy the startup.sh script into the image
 COPY startup.sh /root/.ollama/startup.sh
 
+# Ensure the script is executable
+RUN chmod +x /root/.ollama/startup.sh
+
+# Expose the Ollama port
 EXPOSE 11434
 
-RUN chmod +x /root/.ollama/startup.sh
+# Set the entrypoint to run the startup.sh script
+ENTRYPOINT ["/bin/bash", "/root/.ollama/startup.sh"]
+
+RUN ["ollama", "serve"]
