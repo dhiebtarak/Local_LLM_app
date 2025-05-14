@@ -11,5 +11,3 @@ EXPOSE 11434
 
 # Set the entrypoint to run the startup.sh script
 ENTRYPOINT ["/bin/bash", "/root/.ollama/startup.sh"]
-
-RUN ["ollama", "serve"]
