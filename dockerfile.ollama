@@ -1,0 +1,6 @@
+FROM ollama/ollama:latest
+COPY startup.sh /root/.ollama/startup.sh
+
+EXPOSE 11434
+
+RUN chmod +x /root/.ollama/startup.sh

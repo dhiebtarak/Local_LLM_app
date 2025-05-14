@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  ollama_comp:
+    image: ollama/ollama:latest
+    container_name: ollama_comp
+    build:
+      context: .
+      dockerfile: Dockerfile.ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - tinyllama_volume:/root/.ollama
+      - "./startup.sh:/root/.ollama/startup.sh"
+    networks:
+      - myflask-app-network
+# Enable GPU support (requires NVIDIA Container Toolkit on the host)
+# Uncomment the following lines to enable GPU support (requires NVIDIA Container Toolkit)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    entrypoint: ["/bin/bash", "/root/.ollama/startup.sh"]
+    # Removed command to avoid conflict with startup.sh; ensure the script starts the server
+    command: ["ollama", "serve"]
+
+  flask-app_comp:
+    image: flask-app:latest
+    container_name: flask-app_comp
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - ollama_comp
+    ports:
+      - "5000:5000"
+    environment:
+      - OLLAMA_HOST=http://ollama_comp:11434
+      - FLASK_APP=app.py
+      - FLASK_ENV=development
+    volumes:
+      - .:/app
+    networks:
+      - myflask-app-network
+
+volumes:
+  tinyllama_volume:
+    name: tinyllama_volume
+    # Removed external: true to let Docker Compose manage the volume
+    # If you need an external volume, create it first with: docker volume create tinyllama_volume
+
+networks:
+  myflask-app-network:
+    name: myflask-app-network
+    driver: bridge
+    # Removed external: false as it's the default

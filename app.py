@@ -4,22 +4,24 @@ import logging
 import json
 import requests
 from flask import Flask, request, render_template, Response, stream_with_context, jsonify
+from flask_cors import CORS  # Import the CORS module
 
 # ---------------------------
 # Configuration
 # ---------------------------
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', 'tarak29590495')
-    DEBUG = os.environ.get('DEBUG', 'False') == 'True'
-    
+    DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+    OLLAMA_HOST="http://localhost:11434"
     # Ollama settings
-    OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434")
+    OLLAMA_HOST = os.environ.get("OLLAMA_HOST", OLLAMA_HOST)
     DEFAULT_MODEL = "tinyllama:latest"
     ALLOWED_MODELS = None  # Will be populated after checking available models
     
     # Server configuration
     HOST = "0.0.0.0"
     PORT = 5000
+    CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "http://localhost:4200").split(",")
 
 # ---------------------------
 # Initialize Flask Application
@@ -27,8 +29,16 @@ class Config:
 app = Flask(__name__, static_folder='static', template_folder='templates')
 app.config.from_object(Config)
 
+# Configure CORS
+CORS(app, resources={
+    r"/models": {"origins": app.config['CORS_ORIGINS']},
+    r"/stream_chat": {"origins": app.config['CORS_ORIGINS']},
+    r"/health": {"origins": app.config['CORS_ORIGINS']}
+})
+
 # Configure logging
 logging.basicConfig(
+    filename='app.log',
     level=logging.DEBUG if app.config['DEBUG'] else logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
@@ -98,7 +108,7 @@ def index():
         logger.error(f"Failed to fetch models for index: {str(e)}")
         return render_template('index.html', models=[])
 
-@app.route("/stream_chat", methods=["POST"])
+@app.route("/stream_chat", methods=["POST", "GET"])
 def stream_chat():
     # Extract prompt and model from the request
     data = request.get_json()
@@ -126,7 +136,7 @@ def stream_chat():
     try:
         response = requests.post(url, json=payload, stream=True)
         response.raise_for_status()
-
+        logger.debug(f"Response from Ollama API: {response.content}")
         def sse_generator():
             for line in response.iter_lines():
                 if line:

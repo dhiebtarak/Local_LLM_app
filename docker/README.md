@@ -90,9 +90,35 @@ Create a Docker network for the Flask app and Ollama containers to communicate.
   - This creates a bridge network named `myapp-network`.
   - Both containers are already connected to this network (as specified in the `docker run` commands).
 
+## Docker Compose Setup
+
+### Step 8: Use Docker Compose to Run the Application
+A `docker-compose.yml` file is provided to simplify running both the Flask app and Ollama containers with a single command.
+
+- Ensure you have a `docker-compose.yml` file in your project directory 
+- **Important**: If your system does not have a GPU or the NVIDIA Container Toolkit installed, comment out the `deploy` section in the `docker-compose.yml` file to avoid errors:
+  ```yaml
+  # deploy:
+  #   resources:
+  #     reservations:
+  #       devices:
+  #         - driver: nvidia
+  #           count: all
+  #           capabilities: [gpu]
+  ```
+
+- Run the following command to start both containers:
+  ```cmd
+  docker-compose up -d
+  ```
+  - `-d`: Runs the containers in detached mode.
+  - This command builds the Flask app image, creates the network, sets up the volume, and starts both the Flask app and Ollama containers.
+
+- After running, follow **Step 6** to create the `tinyllama` model inside the Ollama container.
+
 ## Testing the Setup
 
-### Step 8: Test the Ollama Container
+### Step 9: Test the Ollama Container
 Test the Ollama container directly using `curl`.
 
 - Send a request:
@@ -100,7 +126,7 @@ Test the Ollama container directly using `curl`.
   curl http://localhost:11434/api/generate -d "{\"model\": \"tinyllama\", \"prompt\": \"Hello, world!\"}"
   ```
 
-### Step 9: Test the Flask App
+### Step 10: Test the Flask App
 Test the Flask app, which communicates with the Ollama container, using Postman.
 
 - Open Postman.
@@ -148,4 +174,4 @@ Test the Flask app, which communicates with the Ollama container, using Postman.
   - Ensure the `tinyllama` model is created (Step 6).
 
 ## Conclusion
-This setup allows you to run a Flask app that communicates with an Ollama container running the `tinyllama` model. The custom network ensures seamless communication. Test thoroughly and adjust as needed.
+This setup allows you to run a Flask app that communicates with an Ollama container running the `tinyllama` model. Using Docker Compose simplifies the process by starting both containers with a single command. Test thoroughly and adjust as needed.
